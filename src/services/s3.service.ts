@@ -1,7 +1,12 @@
-import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import { awsConfig } from '@/config/env';
-import { logger } from '@/utils/logger';
+import {
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+  DeleteObjectCommand,
+} from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { awsConfig } from "@/config/env";
+import { logger } from "@/utils/logger";
 
 class S3Service {
   public readonly s3Client: S3Client;
@@ -21,7 +26,11 @@ class S3Service {
   /**
    * Upload a file to S3
    */
-  async uploadFile(key: string, body: Buffer, contentType: string): Promise<void> {
+  async uploadFile(
+    key: string,
+    body: Buffer,
+    contentType: string
+  ): Promise<void> {
     try {
       const command = new PutObjectCommand({
         Bucket: this.bucketName,
@@ -36,32 +45,45 @@ class S3Service {
       await this.s3Client.send(command);
       logger.info(`File uploaded to S3: ${key}`);
     } catch (error) {
-      logger.error('Error uploading file to S3:', error);
-      throw new Error(`Failed to upload file to S3: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      logger.error("Error uploading file to S3:", error);
+      throw new Error(
+        `Failed to upload file to S3: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
     }
   }
 
   /**
    * Get a signed URL for downloading a file
    */
-  async getSignedDownloadUrl(key: string, expiresIn: number = 3600): Promise<string> {
+  async getSignedDownloadUrl(
+    key: string,
+    expiresIn: number = 3600
+  ): Promise<string> {
     try {
       const command = new GetObjectCommand({
         Bucket: this.bucketName,
         Key: key,
       });
 
-      const signedUrl = await getSignedUrl(this.s3Client, command, { expiresIn });
+      const signedUrl = await getSignedUrl(this.s3Client, command, {
+        expiresIn,
+      });
       logger.info(`Generated signed URL for: ${key}`);
       return signedUrl;
     } catch (error) {
-      logger.error('Error generating signed URL:', {
+      logger.error("Error generating signed URL:", {
         key,
         bucket: this.bucketName,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
         stack: error instanceof Error ? error.stack : undefined,
       });
-      throw new Error(`Failed to generate signed URL for ${key}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to generate signed URL for ${key}: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
     }
   }
 
@@ -78,8 +100,12 @@ class S3Service {
       await this.s3Client.send(command);
       logger.info(`File deleted from S3: ${key}`);
     } catch (error) {
-      logger.error('Error deleting file from S3:', error);
-      throw new Error(`Failed to delete file from S3: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      logger.error("Error deleting file from S3:", error);
+      throw new Error(
+        `Failed to delete file from S3: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
     }
   }
 
@@ -118,8 +144,12 @@ class S3Service {
         metadata: response.Metadata,
       };
     } catch (error) {
-      logger.error('Error getting file metadata:', error);
-      throw new Error(`Failed to get file metadata: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      logger.error("Error getting file metadata:", error);
+      throw new Error(
+        `Failed to get file metadata: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
     }
   }
 }

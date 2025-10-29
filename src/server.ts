@@ -12,8 +12,8 @@ import {
 } from "@/middleware/security.middleware";
 import imageRoutes from "@/routes/image.routes";
 import { logger } from "@/utils/logger";
-import { redisService } from "@/services/redisService";
-import { queueService } from "@/services/queueService";
+import { redisService } from "@/services/redis.service";
+import { queueService } from "@/services/queue.service";
 import { imageProcessingService } from "@/services/imageProcessingService";
 
 const app = express();

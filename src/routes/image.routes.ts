@@ -82,7 +82,7 @@ router.post(
       }
 
       const { imageProcessingService } = await import(
-        "@/services/imageProcessing.service"
+        "@/services/image-processing.service"
       );
       const buffer = Buffer.from(req.file.buffer);
 

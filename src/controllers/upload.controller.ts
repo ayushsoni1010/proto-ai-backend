@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { prisma } from "@/config/database";
 import { s3Service } from "@/services/s3.service";
-import { imageProcessingService } from "@/services/imageProcessing.service";
+import { imageProcessingService } from "@/services/image-processing.service";
 import { ChunkUploadRequest, ChunkUploadResponse } from "@/types";
 import { logger } from "@/utils/logger";
 
@@ -66,7 +66,7 @@ class ChunkedUploadController {
           // Combine all chunks
           const completeBuffer = Buffer.concat(chunks);
 
-          // Convert HEIC to JPEG if needed
+          // Convert HEIC to JPEG/PNG if needed
           let processedBuffer: Buffer = completeBuffer;
           let finalMimeType = mimeType;
 
@@ -74,10 +74,15 @@ class ChunkedUploadController {
             mimeType === "image/heic" ||
             filename.toLowerCase().endsWith(".heic")
           ) {
-            processedBuffer = await imageProcessingService.convertHeicToJpeg(
-              completeBuffer
+            const target = "jpeg";
+            processedBuffer = await imageProcessingService.convertToFormat(
+              completeBuffer,
+              target,
+              { filename, originalName: filename }
             );
-            finalMimeType = "image/jpeg";
+            if (processedBuffer !== completeBuffer) {
+              finalMimeType = "image/jpeg";
+            }
           }
 
           // Validate image

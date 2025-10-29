@@ -1,5 +1,3 @@
-<<<<<<< Current (Your changes)
-=======
 import sharp from "sharp";
 import crypto from "node:crypto";
 import {
@@ -10,8 +8,7 @@ import { awsConfig, imageConfig } from "@/config/env";
 import { prisma } from "@/config/database";
 import { ValidationResult, ImageMetadata } from "@/types";
 import { logger } from "@/utils/logger";
-import { redisService } from "@/services/redisService";
-import { redisConfig } from "@/config/env";
+import { redisService } from "@/services/redis.service";
 
 class ImageProcessingService {
   private rekognitionClient: RekognitionClient;
@@ -223,7 +220,7 @@ class ImageProcessingService {
     });
 
     try {
-      const pipeline = sharp(buffer, { failOn: 'none' as any });
+      const pipeline = sharp(buffer, { failOn: "none" as any });
       const metadata = await pipeline.metadata();
 
       let output: Buffer;
@@ -419,4 +416,3 @@ class ImageProcessingService {
 
 export const imageProcessingService = new ImageProcessingService();
 export default imageProcessingService;
->>>>>>> Incoming (Background Agent changes)
