@@ -2,34 +2,34 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model Image {
-  id          String   @id @default(cuid())
-  filename    String
-  originalName String
-  mimeType    String
-  size        Int
-  width       Int?
-  height      Int?
-  s3Key       String   @unique
-  s3Url       String?
-  status      ImageStatus @default(PENDING)
-  hash        String?  // For duplicate detection
-  blurScore   Float?   // Laplacian variance score
-  faceCount   Int?     // Number of faces detected
-  faceSize    Float?   // Size of largest face relative to image
+  id                String      @id @default(cuid())
+  filename          String
+  originalName      String
+  mimeType          String
+  size              Int
+  width             Int?
+  height            Int?
+  s3Key             String      @unique
+  s3Url             String?
+  status            ImageStatus @default(PENDING)
+  hash              String? // For duplicate detection
+  blurScore         Float? // Laplacian variance score
+  faceCount         Int? // Number of faces detected
+  faceSize          Float? // Size of largest face relative to image
   validationResults Json? // Store all validation results
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
   // Indexes for performance
   @@index([status])
   @@index([createdAt])
@@ -37,16 +37,16 @@ model Image {
 }
 
 model UploadSession {
-  id          String   @id @default(cuid())
-  filename    String
-  totalChunks Int
-  uploadedChunks Int   @default(0)
-  status      UploadStatus @default(IN_PROGRESS)
-  s3Key       String?  @unique
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  expiresAt   DateTime // Cleanup expired sessions
-  
+  id             String       @id @default(cuid())
+  filename       String
+  totalChunks    Int
+  uploadedChunks Int          @default(0)
+  status         UploadStatus @default(IN_PROGRESS)
+  s3Key          String?      @unique
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  expiresAt      DateTime // Cleanup expired sessions
+
   @@index([status])
   @@index([expiresAt])
 }

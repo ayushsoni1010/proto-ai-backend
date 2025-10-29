@@ -9,8 +9,8 @@ import {
   requestLogger,
   errorHandler,
   notFoundHandler,
-} from "@/middleware/security";
-import imageRoutes from "@/routes/imageRoutes";
+} from "@/middleware/security.middleware";
+import imageRoutes from "@/routes/image.routes";
 import { logger } from "@/utils/logger";
 import { redisService } from "@/services/redisService";
 import { queueService } from "@/services/queueService";

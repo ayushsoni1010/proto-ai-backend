@@ -1,3 +1,5 @@
+<<<<<<< Current (Your changes)
+=======
 import sharp from "sharp";
 import crypto from "node:crypto";
 import {
@@ -417,3 +419,4 @@ class ImageProcessingService {
 
 export const imageProcessingService = new ImageProcessingService();
 export default imageProcessingService;
+>>>>>>> Incoming (Background Agent changes)

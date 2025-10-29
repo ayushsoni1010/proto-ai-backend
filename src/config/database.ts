@@ -1,4 +1,5 @@
-import { PrismaClient } from "../generated/prisma/client";
+import { PrismaClient } from "@prisma/client";
+import { databaseConfig, serverConfig } from "./env";
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
@@ -7,12 +8,14 @@ const globalForPrisma = globalThis as unknown as {
 export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({
-    log:
-      process.env.NODE_ENV === "development"
-        ? ["query", "error", "warn"]
-        : ["error"],
+    log: serverConfig.nodeEnv === "development" ? ["error", "warn"] : ["error"],
+    datasources: {
+      db: {
+        url: databaseConfig.url,
+      },
+    },
   });
 
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+if (serverConfig.nodeEnv !== "production") globalForPrisma.prisma = prisma;
 
 export default prisma;
