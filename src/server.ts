@@ -13,6 +13,8 @@ import {
 import imageRoutes from "@/routes/imageRoutes";
 import { logger } from "@/utils/logger";
 import { redisService } from "@/services/redisService";
+import { queueService } from "@/services/queueService";
+import { imageProcessingService } from "@/services/imageProcessingService";
 
 const app = express();
 
@@ -67,6 +69,30 @@ app.listen(PORT, async () => {
     logger.info('🔔 Redis Pub/Sub initialized');
   } catch (e) {
     logger.warn('Redis initialization failed; continuing without Pub/Sub', e);
+  }
+
+  // Initialize BullMQ worker (image conversion example)
+  try {
+    await queueService.initializeWorker(async (job) => {
+      if (job.name === 'image-convert') {
+        const start = Date.now();
+        const buffer = Buffer.from(job.data.bufferBase64, 'base64');
+        const out = await imageProcessingService.convertToFormat(
+          buffer,
+          job.data.target,
+          { filename: job.data.filename, originalName: job.data.originalName }
+        );
+        return {
+          success: true,
+          sizeBytes: out.length,
+          durationMs: Date.now() - start,
+        };
+      }
+      return { success: true };
+    });
+    logger.info('🧵 Queue worker initialized');
+  } catch (e) {
+    logger.warn('Queue worker init failed; continuing without worker', e);
   }
 });
 
