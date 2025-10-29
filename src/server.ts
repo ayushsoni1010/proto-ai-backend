@@ -12,6 +12,9 @@ import {
 } from "@/middleware/security";
 import imageRoutes from "@/routes/imageRoutes";
 import { logger } from "@/utils/logger";
+import { redisService } from "@/services/redisService";
+import { queueService } from "@/services/queueService";
+import { imageProcessingService } from "@/services/imageProcessingService";
 
 const app = express();
 
@@ -52,11 +55,45 @@ app.use(errorHandler);
 // Start server
 const PORT = serverConfig.port;
 
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   logger.info(`🚀 Server running on port ${PORT}`);
   logger.info(`📊 Environment: ${serverConfig.nodeEnv}`);
   logger.info(`🔗 Health check: http://localhost:${PORT}/health`);
   logger.info(`📸 Image API: http://localhost:${PORT}/api/images`);
+  // Initialize Redis connections and basic event subscription for observability
+  try {
+    await redisService.connect();
+    await redisService.subscribeToImageEvents((type, payload) => {
+      logger.info(`Redis event: ${type} -> ${JSON.stringify(payload)}`);
+    });
+    logger.info('🔔 Redis Pub/Sub initialized');
+  } catch (e) {
+    logger.warn('Redis initialization failed; continuing without Pub/Sub', e);
+  }
+
+  // Initialize BullMQ worker (image conversion example)
+  try {
+    await queueService.initializeWorker(async (job) => {
+      if (job.name === 'image-convert') {
+        const start = Date.now();
+        const buffer = Buffer.from(job.data.bufferBase64, 'base64');
+        const out = await imageProcessingService.convertToFormat(
+          buffer,
+          job.data.target,
+          { filename: job.data.filename, originalName: job.data.originalName }
+        );
+        return {
+          success: true,
+          sizeBytes: out.length,
+          durationMs: Date.now() - start,
+        };
+      }
+      return { success: true };
+    });
+    logger.info('🧵 Queue worker initialized');
+  } catch (e) {
+    logger.warn('Queue worker init failed; continuing without worker', e);
+  }
 });
 
 // Graceful shutdown

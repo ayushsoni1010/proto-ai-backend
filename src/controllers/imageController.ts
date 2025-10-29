@@ -5,6 +5,7 @@ import { imageProcessingService } from "@/services/imageProcessingService";
 import { ImageResponse, ImageListResponse } from "@/types";
 import { logger } from "@/utils/logger";
 import { awsConfig } from "@/config/env";
+import { redisService } from "@/services/redisService";
 
 class ImageController {
   /**
@@ -145,7 +146,7 @@ class ImageController {
 
       const buffer = Buffer.from(file.buffer);
 
-      // Convert HEIC to JPEG if needed
+      // Convert HEIC to JPEG/PNG if needed
       let processedBuffer: Buffer = buffer;
       let finalMimeType = file.mimetype;
 
@@ -154,12 +155,15 @@ class ImageController {
         file.originalname.toLowerCase().endsWith(".heic")
       ) {
         try {
-          processedBuffer = await imageProcessingService.convertHeicToJpeg(
-            buffer
+          const target = (req.query.to === 'png' ? 'png' : 'jpeg') as 'jpeg' | 'png';
+          processedBuffer = await imageProcessingService.convertToFormat(
+            buffer,
+            target,
+            { filename: file.originalname, originalName: file.originalname }
           );
           // Only change mime type if conversion was successful
           if (processedBuffer !== buffer) {
-            finalMimeType = "image/jpeg";
+            finalMimeType = target === 'png' ? 'image/png' : 'image/jpeg';
           }
         } catch (error) {
           logger.warn(
@@ -188,6 +192,17 @@ class ImageController {
         } else {
           validationResult = await imageProcessingService.validateImage(processedBuffer);
         }
+
+      // Cache validation metadata in Redis (gzipped)
+      try {
+        await redisService.setCompressed(
+          `image:validation:${validationResult.metadata?.hash ?? file.originalname}`,
+          validationResult,
+          3600
+        );
+      } catch (e) {
+        logger.warn('Failed to cache validation result in Redis', e);
+      }
 
       if (!validationResult.isValid) {
         res.status(400).json({
