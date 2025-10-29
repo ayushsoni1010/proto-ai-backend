@@ -17,6 +17,10 @@ const envSchema = z.object({
   // Server Configuration
   PORT: z.string().default('3001'),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+
+  // Redis / Queue
+  REDIS_URL: z.string().default('redis://localhost:6379'),
+  REDIS_IMAGE_EVENTS_CHANNEL: z.string().default('image:events'),
   
   // Image Processing Configuration
   MIN_IMAGE_WIDTH: z.string().default('300'),
@@ -59,6 +63,11 @@ export const awsConfig = {
 export const serverConfig = {
   port: Number.parseInt(env.PORT),
   nodeEnv: env.NODE_ENV,
+};
+
+export const redisConfig = {
+  url: env.REDIS_URL,
+  imageEventsChannel: env.REDIS_IMAGE_EVENTS_CHANNEL,
 };
 
 export const imageConfig = {

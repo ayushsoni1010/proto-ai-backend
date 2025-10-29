@@ -8,6 +8,8 @@ import { awsConfig, imageConfig } from "@/config/env";
 import { prisma } from "@/config/database";
 import { ValidationResult, ImageMetadata } from "@/types";
 import { logger } from "@/utils/logger";
+import { redisService } from "@/services/redisService";
+import { redisConfig } from "@/config/env";
 
 class ImageProcessingService {
   private rekognitionClient: RekognitionClient;
@@ -202,26 +204,61 @@ class ImageProcessingService {
   }
 
   /**
-   * Convert HEIC image to JPEG
+   * Convert image (HEIC supported) to target format using Sharp.
+   * Publishes Redis Pub/Sub events around conversion lifecycle.
    */
-  async convertHeicToJpeg(buffer: Buffer): Promise<Buffer> {
+  async convertToFormat(
+    buffer: Buffer,
+    target: "jpeg" | "png",
+    context: { filename?: string; originalName?: string }
+  ): Promise<Buffer> {
+    const start = Date.now();
+    await redisService.publishImageEvent("image.conversion.started", {
+      filename: context.filename,
+      originalName: context.originalName,
+      targetFormat: target,
+      sizeBytes: buffer.length,
+    });
+
     try {
-      // For HEIC files, Sharp cannot process them without special build
-      // So we'll return the original buffer and let the frontend handle it
-      logger.warn(
-        "HEIC file detected - Sharp cannot process HEIC files. Returning original buffer."
-      );
-      logger.info(
-        "HEIC files will be stored as-is and should be handled by the frontend for display."
-      );
+      const pipeline = sharp(buffer, { failOn: 'none' as any });
+      const metadata = await pipeline.metadata();
 
-      // Return the original buffer - the frontend will need to handle HEIC display
-      return buffer;
+      let output: Buffer;
+      if (target === "jpeg") {
+        output = await pipeline.jpeg({ quality: 85, mozjpeg: true }).toBuffer();
+      } else {
+        output = await pipeline.png({ compressionLevel: 9 }).toBuffer();
+      }
+
+      const durationMs = Date.now() - start;
+      await redisService.publishImageEvent("image.conversion.completed", {
+        filename: context.filename,
+        originalName: context.originalName,
+        targetFormat: target,
+        sizeBytes: output.length,
+        durationMs,
+        metadata: {
+          inputFormat: metadata.format,
+          width: metadata.width,
+          height: metadata.height,
+        },
+      });
+
+      return output;
     } catch (error) {
-      logger.error("Error in HEIC conversion:", error);
+      const durationMs = Date.now() - start;
+      await redisService.publishImageEvent("image.conversion.failed", {
+        filename: context.filename,
+        originalName: context.originalName,
+        targetFormat: target,
+        sizeBytes: buffer.length,
+        durationMs,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
 
-      // If anything fails, return the original buffer
-      logger.warn("HEIC conversion failed, returning original buffer");
+      logger.error("Error converting image:", error);
+      // Fallback to original buffer if conversion fails
       return buffer;
     }
   }

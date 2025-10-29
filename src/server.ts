@@ -12,6 +12,7 @@ import {
 } from "@/middleware/security";
 import imageRoutes from "@/routes/imageRoutes";
 import { logger } from "@/utils/logger";
+import { redisService } from "@/services/redisService";
 
 const app = express();
 
@@ -52,11 +53,21 @@ app.use(errorHandler);
 // Start server
 const PORT = serverConfig.port;
 
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   logger.info(`🚀 Server running on port ${PORT}`);
   logger.info(`📊 Environment: ${serverConfig.nodeEnv}`);
   logger.info(`🔗 Health check: http://localhost:${PORT}/health`);
   logger.info(`📸 Image API: http://localhost:${PORT}/api/images`);
+  // Initialize Redis connections and basic event subscription for observability
+  try {
+    await redisService.connect();
+    await redisService.subscribeToImageEvents((type, payload) => {
+      logger.info(`Redis event: ${type} -> ${JSON.stringify(payload)}`);
+    });
+    logger.info('🔔 Redis Pub/Sub initialized');
+  } catch (e) {
+    logger.warn('Redis initialization failed; continuing without Pub/Sub', e);
+  }
 });
 
 // Graceful shutdown
